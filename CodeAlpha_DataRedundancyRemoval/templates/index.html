@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Redundancy Removal</title>
+<style>
+  :root {
+    --ink:#1b2130; --muted:#5d6678; --line:#e3e6ee; --bg:#f5f6fa; --card:#fff; --accent:#2563eb;
+    --unique:#15803d; --unique-bg:#dcfce7; --fp:#a16207; --fp-bg:#fef3c7;
+    --red:#b91c1c; --red-bg:#fee2e2; --inv:#6b7280; --inv-bg:#eceef2;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:18px 24px; }
+  header h1 { margin:0; font-size:1.25rem; }
+  header p { margin:4px 0 0; color:var(--muted); font-size:.92rem; }
+  main { max-width:1150px; margin:0 auto; padding:22px 16px 60px; display:grid; gap:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; }
+  .card h2 { margin:0 0 12px; font-size:1rem; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .stat b { display:block; font-size:1.6rem; font-variant-numeric:tabular-nums; }
+  .stat span { color:var(--muted); font-size:.82rem; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:800px) { .two { grid-template-columns:1fr; } }
+  form .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  @media (max-width:480px) { form .row { grid-template-columns:1fr; } }
+  label { font-size:.8rem; color:var(--muted); display:block; margin-bottom:3px; }
+  input[type=text], input[type=email] { width:100%; padding:9px 10px; border:1px solid #cfd4df; border-radius:8px; font-size:.95rem; }
+  input:focus { outline:2px solid #bfdbfe; border-color:var(--accent); }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; }
+  button { border:0; border-radius:8px; padding:9px 14px; font-size:.9rem; cursor:pointer; background:var(--accent); color:#fff; }
+  button.secondary { background:#e8edf9; color:#1e3a8a; }
+  button:disabled { opacity:.5; cursor:default; }
+  .result { margin-top:12px; padding:10px 12px; border-radius:8px; font-size:.9rem; display:none; }
+  .result.show { display:block; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem; font-weight:600; white-space:nowrap; }
+  .s-unique { background:var(--unique-bg); color:var(--unique); }
+  .s-false_positive { background:var(--fp-bg); color:var(--fp); }
+  .s-redundant { background:var(--red-bg); color:var(--red); }
+  .s-invalid { background:var(--inv-bg); color:var(--inv); }
+  .drop { border:2px dashed #cfd4df; border-radius:10px; padding:22px; text-align:center; color:var(--muted); font-size:.9rem; }
+  .drop.over { border-color:var(--accent); background:#eff4ff; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .tabs button { background:#eef0f5; color:var(--ink); }
+  .tabs button.active { background:var(--ink); color:#fff; }
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.86rem; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
+  td.num { font-variant-numeric:tabular-nums; }
+  .empty { color:var(--muted); padding:16px 10px; }
+  .legend { color:var(--muted); font-size:.82rem; line-height:1.6; margin:10px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Data Redundancy Removal System</h1>
+  <p>Every record is validated and compared to existing data. Only unique, verified records are added to the cloud database.</p>
+</header>
+
+<main>
+  <section class="stats" id="stats" aria-label="Statistics"></section>
+
+  <div class="two">
+    <section class="card">
+      <h2>Add a record</h2>
+      <form id="recordForm" autocomplete="off">
+        <div class="row">
+          <div><label for="name">Name</label><input type="text" id="name" required></div>
+          <div><label for="email">Email</label><input type="text" id="email" required></div>
+        </div>
+        <div class="row">
+          <div><label for="phone">Phone</label><input type="text" id="phone" required></div>
+          <div><label for="city">City</label><input type="text" id="city"></div>
+        </div>
+        <div class="btns">
+          <button type="button" class="secondary" id="checkBtn">Check only</button>
+          <button type="submit" id="addBtn">Validate &amp; add</button>
+        </div>
+      </form>
+      <div class="result" id="result" role="status"></div>
+      <p class="legend">
+        <span class="badge s-unique">unique</span> new data, stored &nbsp;
+        <span class="badge s-false_positive">false positive</span> looks similar but is a different entry, stored and flagged &nbsp;
+        <span class="badge s-redundant">redundant</span> duplicate, blocked &nbsp;
+        <span class="badge s-invalid">invalid</span> failed validation, rejected
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Bulk upload (CSV)</h2>
+      <div class="drop" id="drop">
+        Drop a CSV file here, or <label for="file" style="display:inline;color:var(--accent);cursor:pointer;font-size:inherit">choose a file</label>
+        <input type="file" id="file" accept=".csv,text/csv" hidden>
+        <div style="margin-top:6px;font-size:.8rem">Columns: name, email, phone, city</div>
+      </div>
+      <div class="result" id="uploadResult" role="status"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="tabs" role="tablist">
+      <button class="active" data-tab="records" role="tab">Stored records</button>
+      <button data-tab="log" role="tab">Decision log</button>
+      <button data-tab="upload" role="tab" id="uploadTab" hidden>Last upload</button>
+    </div>
+    <div class="table-wrap" id="tableWrap"></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const LABEL = { unique: "unique", false_positive: "false positive", redundant: "redundant", invalid: "invalid" };
+let currentTab = "records", lastUpload = [];
+
+function el(tag, attrs = {}, ...children) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) k === "class" ? (n.className = v) : n.setAttribute(k, v);
+  for (const c of children) n.append(c instanceof Node ? c : document.createTextNode(c ?? ""));
+  return n;
+}
+const badge = (s) => el("span", { class: "badge s-" + s }, LABEL[s] || s);
+
+function table(headers, rows) {
+  if (!rows.length) return el("div", { class: "empty" }, "Nothing here yet.");
+  const t = el("table");
+  t.append(el("thead", {}, el("tr", {}, ...headers.map((h) => el("th", {}, h)))));
+  const tb = el("tbody");
+  rows.forEach((r) => tb.append(el("tr", {}, ...r.map((c) => (c instanceof Node ? el("td", {}, c) : el("td", {}, String(c ?? "")))))));
+  t.append(tb);
+  return t;
+}
+
+async function loadStats() {
+  const s = await (await fetch("/api/stats")).json();
+  const tiles = [
+    ["received", "Records received"], ["stored", "Stored in database"], ["redundant", "Duplicates blocked"],
+    ["false_positive", "False positives"], ["invalid", "Invalid rejected"],
+  ];
+  $("stats").replaceChildren(...tiles.map(([k, label]) => el("div", { class: "stat" }, el("b", {}, String(s[k])), el("span", {}, label))),
+    el("div", { class: "stat" }, el("b", {}, Math.round(s.redundancy_rate * 100) + "%"), el("span", {}, "Redundancy rate")));
+}
+
+async function loadTable() {
+  let node;
+  if (currentTab === "records") {
+    const rows = await (await fetch("/api/records")).json();
+    node = table(["ID", "Name", "Email", "Phone", "City", "Status"],
+      rows.map((r) => [r.id, r.name, r.email, r.phone, r.city, badge(r.status)]));
+  } else if (currentTab === "log") {
+    const rows = await (await fetch("/api/log")).json();
+    node = table(["#", "Input", "Decision", "Reason", "Score", "Matched ID"],
+      rows.map((r) => {
+        let input = r.input;
+        try { const o = JSON.parse(r.input); input = [o.name, o.email, o.phone].filter(Boolean).join(" · "); } catch (e) {}
+        return [r.id, input, badge(r.status), r.reason, r.score.toFixed(2), r.matched_id ?? "—"];
+      }));
+  } else {
+    node = table(["Row", "Name", "Email", "Decision", "Reason", "Matched ID"],
+      lastUpload.map((r) => [r.row, r.input.name, r.input.email, badge(r.status), r.reason, r.matched_id ?? "—"]));
+  }
+  $("tableWrap").replaceChildren(node);
+}
+
+function refresh() { return Promise.all([loadStats(), loadTable()]); }
+
+function formData() {
+  return { name: $("name").value, email: $("email").value, phone: $("phone").value, city: $("city").value };
+}
+
+function showResult(d, saved) {
+  const box = $("result");
+  box.className = "result show s-" + d.status;
+  const verb = d.status === "invalid" ? "Rejected" : d.status === "redundant" ? "Blocked"
+    : saved ? "Added to database" : "Would be added";
+  const extra = d.matched_id ? ` (matches record #${d.matched_id}, similarity ${Math.round(d.score * 100)}%)` : "";
+  box.replaceChildren(el("b", {}, LABEL[d.status].toUpperCase() + " · " + verb), el("br"), d.reason + extra);
+}
+
+async function submit(path) {
+  $("checkBtn").disabled = $("addBtn").disabled = true;
+  try {
+    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData()) });
+    const d = await res.json();
+    showResult(d, path === "/api/records");
+    if (path === "/api/records" && (d.status === "unique" || d.status === "false_positive")) $("recordForm").reset();
+    await refresh();
+  } finally {
+    $("checkBtn").disabled = $("addBtn").disabled = false;
+  }
+}
+
+$("checkBtn").onclick = () => submit("/api/check");
+$("recordForm").onsubmit = (e) => { e.preventDefault(); submit("/api/records"); };
+
+async function uploadFile(file) {
+  const box = $("uploadResult");
+  box.className = "result show";
+  box.textContent = "Processing " + file.name + "...";
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch("/api/upload", { method: "POST", body: fd });
+  const d = await res.json();
+  if (!res.ok) { box.className = "result show s-invalid"; box.textContent = d.error; return; }
+  const s = d.summary;
+  box.className = "result show s-unique";
+  box.replaceChildren(el("b", {}, `${d.rows.length} rows processed`), el("br"),
+    `${s.unique} unique · ${s.false_positive} false positive · ${s.redundant} redundant (blocked) · ${s.invalid} invalid`);
+  lastUpload = d.rows;
+  $("uploadTab").hidden = false;
+  selectTab("upload");
+  loadStats();
+}
+
+$("file").onchange = (e) => e.target.files[0] && uploadFile(e.target.files[0]);
+const drop = $("drop");
+drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && uploadFile(e.dataTransfer.files[0]); };
+
+function selectTab(name) {
+  currentTab = name;
+  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  loadTable();
+}
+document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => selectTab(b.dataset.tab)));
+
+refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+name,email,phone,city,expected
+John Smith,john.smith@gmail.com,+1 (415) 555-0101,San Francisco,unique
+Priya Sharma,priya.sharma@outlook.com,+91 98765 43210,Mumbai,unique
+Ahmed Khan,ahmed.khan@yahoo.com,+92 300 1234567,Lahore,unique
+Maria Garcia,maria.garcia@gmail.com,+34 612 345 678,Madrid,unique
+Chen Wei,chen.wei@qq.com,+86 138 0013 8000,Shanghai,unique
+John Smith,john.smith@gmail.com,+1 (415) 555-0101,San Francisco,redundant
+  JOHN SMITH ,John.Smith@GMAIL.com,415-555-0101,san francisco,redundant
+Priya Sharma,priya.s.work@gmail.com,9876543210,Mumbai,redundant
+Ahmed Khan,ahmed.khan.lhr@gmail.com,03001234567,Lahore,redundant
+Maria Garcia,maria.garcia@gmial.com,+34 612 345 679,Madrid,redundant
+Wei Chen,chen.wei@qq.cn,+86 138 0013 8001,Shanghai,redundant
+John Smith,jsmith.dev@protonmail.com,+44 20 7946 0958,London,false_positive
+Maria Garcia,mgarcia88@hotmail.com,+52 55 8765 4391,Madrid,false_positive
+Emily Brown,emily.brown@gmail.com,+61 412 345 678,Sydney,unique
+Lucas Martin,lucas.martin@free.fr,+33 6 12 34 56 78,Paris,unique
+Sara Ali,sara.ali@,+20 100 123 4567,Cairo,invalid
+No Phone,nophone@example.com,12345,Berlin,invalid
+,missing.name@example.com,+49 151 2345 6789,Berlin,invalid
+José Álvarez,jose.alvarez@gmail.com,+57 301 234 5678,Bogotá,unique
+Jose Alvarez,jose.alvarez@gmail.com,+57 301 234 5678,Bogota,redundant
