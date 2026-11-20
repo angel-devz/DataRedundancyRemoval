@@ -1,6 +1,6 @@
 # Data Redundancy Removal System
 
-CodeAlpha Cloud Computing Internship, **Task 1: Data Redundancy Removal System**.
+Cloud Computing Internship, **Task 1: Data Redundancy Removal System**.
 
 This is a cloud web service that checks every incoming record against the data already stored. It classifies
 each record as **unique**, **redundant** or **false positive** (or **invalid**) and appends only unique, verified
