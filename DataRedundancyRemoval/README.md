@@ -1,4 +1,4 @@
-# CodeAlpha Data Redundancy Removal System
+# Data Redundancy Removal System
 
 CodeAlpha Cloud Computing Internship, **Task 1: Data Redundancy Removal System**.
 
@@ -59,7 +59,7 @@ Result: 20 received → **10 stored**, 7 duplicates blocked, 3 invalid rejected.
 ## Project structure
 
 ```
-CodeAlpha_DataRedundancyRemoval/
+DataRedundancyRemoval/
 ├── dedup.py            Validation, normalization, similarity, classification
 ├── database.py         SQLAlchemy store: SQLite locally, PostgreSQL in the cloud
 ├── app.py              Flask REST API
@@ -111,7 +111,7 @@ The app reads `DATABASE_URL`. Without it, it uses a local SQLite file. In the cl
 database so the data persists and all servers share it.
 
 **Render (free tier)**
-1. Push this folder to GitHub as `CodeAlpha_DataRedundancyRemoval`.
+1. Push this folder to GitHub as `DataRedundancyRemoval`.
 2. On Render, create a **PostgreSQL** database and copy its *Internal Database URL*.
 3. Create a **Web Service** from the repo. Build command `pip install -r requirements.txt`, start command
    `gunicorn app:app --workers 2 --bind 0.0.0.0:$PORT`.
@@ -119,8 +119,8 @@ database so the data persists and all servers share it.
 
 **Docker (AWS App Runner + RDS, Google Cloud Run + Cloud SQL, Azure Container Apps + Azure Database for PostgreSQL)**
 ```bash
-docker build -t codealpha-dedup .
-docker run -p 8080:8080 -e DATABASE_URL=postgresql+psycopg://user:pass@host:5432/db codealpha-dedup
+docker build -t data-redundancy-removal .
+docker run -p 8080:8080 -e DATABASE_URL=postgresql+psycopg://user:pass@host:5432/db data-redundancy-removal
 ```
 
 The tables are created automatically on first start. The web servers keep no state, so you can run as many
